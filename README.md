@@ -4,9 +4,8 @@ fs-cleaner
 fs-cleaner deletes or archives files based on last access or modification time. The most common use case is managing persistent scratch file systems, for example in high performance computing environments. Scratch file systems contain temporary, machine generated data that can be deleted after use. 
 
 
-
-   user@box1:~/py$ ./fs-cleaner.py --help
-   usage: fs-cleaner [-h] [--debug] [--email-notify EMAIL] [--warn-days WARNDAYS]
+    user@box1:~/py$ ./fs-cleaner.py --help
+    usage: fs-cleaner [-h] [--debug] [--email-notify EMAIL] [--warn-days WARNDAYS]
                   [--days DAYS] [--archive-root AROOT]
                   [--archive-prefix APREFIX] [--archive-tenant]
                   [--bwlimit BWLIMIT] [--remove-appledoubles]
