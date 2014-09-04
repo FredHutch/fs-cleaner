@@ -5,18 +5,18 @@ fs-cleaner deletes or archives files based on last access or modification time. 
 
 
 
-  user@box1:~/py$ ./fs-cleaner.py --help
-  usage: fs-cleaner [-h] [--debug] [--email-notify EMAIL] [--warn-days WARNDAYS]
+   user@box1:~/py$ ./fs-cleaner.py --help
+   usage: fs-cleaner [-h] [--debug] [--email-notify EMAIL] [--warn-days WARNDAYS]
                   [--days DAYS] [--archive-root AROOT]
                   [--archive-prefix APREFIX] [--archive-tenant]
                   [--bwlimit BWLIMIT] [--remove-appledoubles]
                   [--folder FOLDER]
 
-  clean out old files on a scratch file system and notify file owners.
-  Optionally archive files to destination archive-root/+archive-tenant/+archive-
-  prefix/project-yyyy-mm-dd
+   clean out old files on a scratch file system and notify file owners.
+   Optionally archive files to destination archive-root/+archive-tenant/+archive-
+   prefix/project-yyyy-mm-dd
 
-  optional arguments:
+   optional arguments:
    -h, --help            show this help message and exit
    --debug, -g           show the actual shell commands that are executed (git,
                          chmod, cd)
