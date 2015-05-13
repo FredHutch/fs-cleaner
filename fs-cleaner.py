@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # Script to clean out a file system such as scratch based on certain criteria
 # (e.g. not accessed or modified in x days)
@@ -66,6 +66,8 @@ def main():
             recent_time = stat.st_atime
             if stat.st_mtime > recent_time:
                 recent_time = stat.st_mtime
+            if stat.st_ctime > recent_time:
+                recent_time = stat.st_ctime
             if stat.st_uid not in infodict:
                 infodict[stat.st_uid] = [0, 0, 0, 0]
             if recent_time <= days_back_as_secs:
