@@ -264,11 +264,10 @@ def getstat(path):
     """ returns the stat information of a file"""
     statinfo=None
     try:
-        statinfo=os.stat(path)
+        statinfo=os.lstat(path)
     except (IOError, OSError) as e:   # FileNotFoundError only since python 3.3
         if args.debug:
-            sys.stderr.write(str(e))
-            sys.stderr.write('\nSymbolic link not followed!\n')
+            sys.stderr.write(str(e))            
     except:
         raise
     return statinfo
