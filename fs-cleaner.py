@@ -123,7 +123,8 @@ def main():
         if list2file(v,file2send):
             if not args.debug:
                 try:
-                    send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
+                    if not args.suppress_emails:
+                        send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
                             "Please see attached list of files!\n\n" \
                             "The files listed in the attached text file\n" \
                             "will be deleted in %s days when they will\n" \
@@ -169,7 +170,8 @@ def main():
         if list2file(v,file2send):
             if not args.debug:
                 try:
-                    send_mail([user,], "NOTE: Deleted files in %s that were not accessed for %s days" % (args.folder, args.days),
+                    if not args.suppress_emails:
+                        send_mail([user,], "NOTE: Deleted files in %s that were not accessed for %s days" % (args.folder, args.days),
                             "Please see attached list of files!\n\n" \
                             "The files listed in the attached text file\n" \
                             "were deleted because they were not accessed\n" \
@@ -447,6 +449,9 @@ def parse_arguments():
         'archive-root/+archive-prefix1level/+archive-prefix2/project-yyyy-mm-dd')
     parser.add_argument( '--debug', '-g', dest='debug', action='store_true',
         help='show the actual shell commands that are executed (git, chmod, cd)',
+        default=False )
+    parser.add_argument( '--suppress-emails', '-s', dest='suppress_emails', action='store_true',
+        help='do not send any emails to end users',
         default=False )
     parser.add_argument( '--email-notify', '-e', dest='email',
         action='store',
