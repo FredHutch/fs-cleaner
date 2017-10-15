@@ -21,6 +21,10 @@ class KeyboardInterruptError(Exception): pass
 
 def main():
 
+    log = logger('fs-cleaner', args.debug)
+    log.info('starting to check folder %s for files older than %s days...' % (args.folder, args.days))
+    log.debug('Parsed arguments: %s' % args)
+    
     currdir = os.getcwd()
     #curruser = os.getenv('USER') does not work in many cron jobs
     curruser = pwd.getpwuid(os.getuid()).pw_name
@@ -45,6 +49,16 @@ def main():
         #for folder in folders:
             #print ('...folder:%s' % folder)
         # check if the user wanted to archive
+
+        if args.delete_folders:
+            if not folders and not files and root != os.path.normpath(args.folder):
+                stat=getstat(root)
+                if stat.st_mtime <= days_back_as_secs:
+                    if not args.debug:
+                        os.rmdir(root)
+                    #print('would delete %s' % root)
+                continue
+                
         if os.path.exists(os.path.join(root, '.archive-me')):
             if not root in arch_roots:
                 arch_roots.append(os.path.join(root, ''))  # make sure trailing slash is added
@@ -95,7 +109,7 @@ def main():
                     if not args.debug:
                         os.remove(p)
                         if os.path.exists(p):
-                            sys.stderr.write('file not removed:%s\n' % p)                    
+                            sys.stderr.write('file not removed:%s\n' % p)
                     filedict[stat.st_uid].append(p)
                     infodict[stat.st_uid][0]+=1
                     infodict[stat.st_uid][1]+=stat.st_size
@@ -123,7 +137,9 @@ def main():
         if list2file(v,file2send):
             if not args.debug:
                 try:
-                    if not args.suppress_emails:
+                    if args.suppress_emails:
+                        print ('\nNo email sent to user %s' % user)
+                    else:
                         send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
                             "Please see attached list of files!\n\n" \
                             "The files listed in the attached text file\n" \
@@ -136,10 +152,12 @@ def main():
                             "time of the file to the current date.\n" \
                             "\n" % (args.warndays, args.days, infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824)), # TB: 838860 , GB: 1073741824
                             [file2send,])
-                    print ('\nSent file delete warning to user %s' % user)                    
+                        print ('\nSent file delete warning to user %s' % user)
+                        log.info('Sent delete warning for %s files to %s for filelist in %s' % (user, infodict[k][2] ,file2send))                    
                 except:
                     e=sys.exc_info()[0]
                     sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
+                    log.error("Error in send_mail while sending to '%s': %s" % (user, e))
                     if args.email:
                         send_mail([args.email,], "Error - fs-cleaner",
                             "Please debug email notification to user '%s', Error: %s\n" % (user, e))
@@ -170,17 +188,21 @@ def main():
         if list2file(v,file2send):
             if not args.debug:
                 try:
-                    if not args.suppress_emails:
+                    if args.suppress_emails:
+                        print ('\nNo delete notification sent to user %s' % user)
+                    else:
                         send_mail([user,], "NOTE: Deleted files in %s that were not accessed for %s days" % (args.folder, args.days),
                             "Please see attached list of files!\n\n" \
                             "The files listed in the attached text file\n" \
                             "were deleted because they were not accessed\n" \
                             "in the last %s days." \
                             "\n" % args.days, [file2send,])
-                    print ('\nSent file delete warning to user %s' % user)
+                        print ('\nSent file delete notification to user %s' % user)
+                        log.info('Sent delete note to %s for filelist in %s' % (user, file2send))
                 except:
                     e=sys.exc_info()[0]
                     sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
+                    log.error("Error in send_mail while sending to '%s': %s" % (user, e))
                     if args.email:
                         send_mail([args.email,], "Error - fs-cleaner",
                             "Please debug email notification to user '%s', Error: %s\n" % (user, e))
@@ -246,6 +268,8 @@ def main():
                         print('Archiving of folder %s complete !' % fldr)
                 else:
                     print('folder %s does not exist. Please execute this manually: %s' % (args.aroot,rsync_cmd))
+                    
+    log.info('finished checking folder %s for files older than %s days!' % (args.folder, args.days))
 
 def startswithpath(pathlist, pathstr):
     """ checks if at least one of the paths in a list of paths starts with a string """
@@ -437,6 +461,26 @@ def get_mx_from_email_or_fqdn(addr):
         return ''
     else:
         return mxes[0]
+        
+def logger(name=None, stderr=False):
+    import logging, logging.handlers
+    # levels: CRITICAL:50,ERROR:40,WARNING:30,INFO:20,DEBUG:10,NOTSET:0
+    if not name:
+        name=__file__.split('/')[-1:][0]
+    l=logging.getLogger(name)
+    l.setLevel(logging.INFO)
+    f=logging.Formatter('%(name)s: %(levelname)s:%(module)s.%(lineno)d: %(message)s')
+    # logging to syslog
+    s=logging.handlers.SysLogHandler('/dev/log')
+    s.formatter = f
+    l.addHandler(s)
+    if stderr:
+        l.setLevel(logging.DEBUG)
+        # logging to stderr        
+        c=logging.StreamHandler()
+        c.formatter = f
+        l.addHandler(c)
+    return l
 
 def parse_arguments():
     """
@@ -452,6 +496,9 @@ def parse_arguments():
         default=False )
     parser.add_argument( '--suppress-emails', '-s', dest='suppress_emails', action='store_true',
         help='do not send any emails to end users',
+        default=False )
+    parser.add_argument( '--delete-folders', '-x', dest='delete_folders', action='store_true',
+        help='remove empty folders',
         default=False )
     parser.add_argument( '--email-notify', '-e', dest='email',
         action='store',
