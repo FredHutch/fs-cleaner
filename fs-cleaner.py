@@ -7,14 +7,14 @@
 # /scratch/delete30/lastname_f/projectx/.archive-me is archived to
 # /economy/lastname_f/archive/delete30/projectx-2014-08-21/
 #
-# fs-cleaner dirkpetersen / Sept 2014 
+# fs-cleaner dirkpetersen / Sept 2014 - Oct 2017 
 #
 
 import sys, os, pwd, argparse, subprocess, re, time, datetime, tempfile
 try:
     from scandir import walk
 except:
-    print('importing os.walk instead of scandir.walk')
+    #print('importing os.walk instead of scandir.walk')
     from os import walk
 
 class KeyboardInterruptError(Exception): pass
@@ -43,7 +43,11 @@ def main():
     infodict = {}  # contains list per uid: numfiles, sizefiles, numwarnfiles, sizewarnfiles
     arch_roots = [] # direcories that contain a flag file '.archive-me'
 
-    print ('\nScanning folder %s for files older than %s days...' % (args.folder, args.days))
+    #print ('\nScanning folder %s for files older than %s days...' % (args.folder, args.days))
+    if args.folder == '/':
+        print('root folder not allowed !')
+        return False
+
     for root, folders, files in mywalk(args.folder):
         #print(root)
         #for folder in folders:
@@ -137,9 +141,7 @@ def main():
         if list2file(v,file2send):
             if not args.debug:
                 try:
-                    if args.suppress_emails:
-                        print ('\nNo email sent to user %s' % user)
-                    else:
+                    if not args.suppress_emails:
                         send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
                             "Please see attached list of files!\n\n" \
                             "The files listed in the attached text file\n" \
@@ -188,9 +190,7 @@ def main():
         if list2file(v,file2send):
             if not args.debug:
                 try:
-                    if args.suppress_emails:
-                        print ('\nNo delete notification sent to user %s' % user)
-                    else:
+                    if not args.suppress_emails:
                         send_mail([user,], "NOTE: Deleted files in %s that were not accessed for %s days" % (args.folder, args.days),
                             "Please see attached list of files!\n\n" \
                             "The files listed in the attached text file\n" \
