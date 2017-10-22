@@ -155,7 +155,7 @@ def main():
                             "\n" % (args.warndays, args.days, infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824)), # TB: 838860 , GB: 1073741824
                             [file2send,])
                         print ('\nSent file delete warning to user %s' % user)
-                        log.info('Sent delete warning for %s files to %s for filelist in %s' % (user, infodict[k][2] ,file2send))                    
+                        log.info('Sent delete warning for %s files (%s GB) to %s with filelist %s' % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824), user, file2send))                    
                 except:
                     e=sys.exc_info()[0]
                     sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
@@ -198,7 +198,7 @@ def main():
                             "in the last %s days." \
                             "\n" % args.days, [file2send,])
                         print ('\nSent file delete notification to user %s' % user)
-                        log.info('Sent delete note to %s for filelist in %s' % (user, file2send))
+                        log.info('Sent delete note to %s with filelist %s' % (user, file2send))
                 except:
                     e=sys.exc_info()[0]
                     sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
