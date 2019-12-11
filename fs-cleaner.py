@@ -109,11 +109,15 @@ def main():
                 else:
                     #file is deleted
                     if stat.st_uid not in filedict:
-                        filedict[stat.st_uid] = list()        
-                    if not args.debug:
-                        os.remove(p)
-                        if os.path.exists(p):
-                            sys.stderr.write('file not removed:%s\n' % p)
+                        filedict[stat.st_uid] = list()
+                    if args.touchnotdel:
+                        #touch a file with current time stamp 
+                        os.utime(p, times=(time.time(), stat.st_mtime))
+                    else:
+                        if not args.debug:
+                            os.remove(p)
+                            if os.path.exists(p):
+                                sys.stderr.write('file not removed:%s\n' % p)
                     filedict[stat.st_uid].append(p)
                     infodict[stat.st_uid][0]+=1
                     infodict[stat.st_uid][1]+=stat.st_size
@@ -531,6 +535,9 @@ def parse_arguments():
         type=int,
         help='maximum bandwidth limit (KB/s) of all parallel rsync sessions combined',
         default=0)
+    parser.add_argument( '--touch-instead-delete', '-i', dest='touchnotdel', action='store_true',
+        help='Do not delete a file but touch it so atime will be reset to the current time',
+        default=False )
     parser.add_argument( '--remove-appledoubles', '-a', dest='del_adoubles', action='store_true',
         help='immediately remove AppleDoubles at the source.',
         default=False )
