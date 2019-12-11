@@ -113,7 +113,9 @@ def main():
                     if args.touchnotdel:
                         #touch a file with current time stamp 
                         os.utime(p, times=(time.time(), stat.st_mtime))
+                        args.suppress_emails = True
                     else:
+                        #really delete the file
                         if not args.debug:
                             os.remove(p)
                             if os.path.exists(p):
