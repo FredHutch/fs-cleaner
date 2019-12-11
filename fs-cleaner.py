@@ -112,8 +112,9 @@ def main():
                         filedict[stat.st_uid] = list()
                     if args.touchnotdel:
                         #touch a file with current time stamp 
-                        os.utime(p, times=(time.time(), stat.st_mtime))
+                        setfiletime(p)
                         args.suppress_emails = True
+                        sys.stderr.write('atime reset:\n%s' % p)
                     else:
                         #really delete the file
                         if not args.debug:
@@ -308,10 +309,10 @@ def setfiletime(path,attr="atime"):
     """ sets the a time of a file to the current time """
     try:
         statinfo=getstat(path)
-        if attr=="atime" or attr=="all":
-            os.utime(path,(time.time(),statinfo.st_atime))
+        if attr=="atime":
+            os.utime(path,(time.time(),statinfo.st_mtime))
         if attr=="mtime" or attr=="all":
-            os.utime(path,(time.time(),statinfo.st_mtime))        
+            os.utime(path)
         return True
     except Exception as err:
         sys.stderr.write(str(err))
