@@ -3,10 +3,6 @@
 # Script to clean out a file system such as scratch based on certain criteria
 # (e.g. not accessed or modified in x days)
 #
-# archiving option
-# /scratch/delete30/lastname_f/projectx/.archive-me is archived to
-# /economy/lastname_f/archive/delete30/projectx-2014-08-21/
-#
 # fs-cleaner dirkpetersen / Sept 2014 - Oct 2017 
 #
 
@@ -39,9 +35,7 @@ def main():
 
     filedict = {}  # list of files to delete (grouped by key uid)
     warndict = {}  # list of files to warn about (grouped by key uid)
-    archdict = {}  # list of files to archive (grouped by key uid)
     infodict = {}  # contains list per uid: numfiles, sizefiles, numwarnfiles, sizewarnfiles
-    arch_roots = [] # direcories that contain a flag file '.archive-me'
 
     #print ('\nScanning folder %s for files older than %s days...' % (args.folder, args.days))
     if args.folder == '/':
@@ -52,7 +46,6 @@ def main():
         #print(root)
         #for folder in folders:
             #print ('...folder:%s' % folder)
-        # check if the user wanted to archive
 
         if args.delete_folders:
             if not folders and not files and root != os.path.normpath(args.folder):
@@ -63,9 +56,6 @@ def main():
                     #print('would delete %s' % root)
                 continue
                 
-        if os.path.exists(os.path.join(root, '.archive-me')):
-            if not root in arch_roots:
-                arch_roots.append(os.path.join(root, ''))  # make sure trailing slash is added
         for f in files:
             p=os.path.join(root,f)
             stat=getstat(p)
@@ -99,34 +89,25 @@ def main():
                         if os.path.exists(p):
                             sys.stderr.write('file not removed:%s\n' % p)
                     continue
-                startpath = getstartpath(arch_roots,root)
-                if startpath !=  '':
-                    #file is archived, dict key is source folder minus root.
-                    subpath = startpath[len(os.path.join(args.folder, '')):-1]    #subpath without trailing slashes
-                    if subpath not in archdict:
-                        archdict[subpath] = list()
-                    archdict[subpath].append(p)
-                else:
-                    #file is deleted
-                    if stat.st_uid not in filedict:
-                        filedict[stat.st_uid] = list()
-                    if args.touchnotdel:
-                        #touch a file with current time stamp 
-                        setfiletime(p)
-                        args.suppress_emails = True
-                        sys.stderr.write('atime reset:\n%s' % p)
-                    else:
-                        #really delete the file
-                        if not args.debug:
-                            os.remove(p)
-                            if os.path.exists(p):
-                                sys.stderr.write('file not removed:%s\n' % p)
-                    filedict[stat.st_uid].append(p)
-                    infodict[stat.st_uid][0]+=1
-                    infodict[stat.st_uid][1]+=stat.st_size
+                        #file is deleted
+                        if stat.st_uid not in filedict:
+                            filedict[stat.st_uid] = list()
+                        if args.touchnotdel:
+                            #touch a file with current time stamp 
+                            setfiletime(p)
+                            args.suppress_emails = True
+                            sys.stderr.write('atime reset:\n%s' % p)
+                        else:
+                            #really delete the file
+                            if not args.debug:
+                                os.remove(p)
+                                if os.path.exists(p):
+                                    sys.stderr.write('file not removed:%s\n' % p)
+                        filedict[stat.st_uid].append(p)
+                        infodict[stat.st_uid][0]+=1
+                        infodict[stat.st_uid][1]+=stat.st_size
 
-            if args.warndays > 0 and not startswithpath(arch_roots,root):
-                # no warn if .archive-me path in root
+            if args.warndays > 0:
                 if (recent_time <= days_back_warn_secs and recent_time >= days_back_warn_secs_minus1):
                     if stat.st_uid not in warndict:
                         warndict[stat.st_uid] = list()
@@ -229,53 +210,6 @@ def main():
         else:
             print("Could not save file '%s'" % file2send)
 
-    # ******************* process archiving without notification ********************************
-    
-    for k, v in archdict.items():
-        fldr = k
-        if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+fldr):
-            os.makedirs(tmpdir+'/'+curruser+'/fs-cleaner/'+fldr)
-        file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+fldr+'/'+'archived-'+days_back_datestr+'.txt'
-        tenant=''
-        if args.atenant:  # the first level below the source root represents a tenant that should go before  
-            p=fldr.find('/')
-            if p>=0:
-                tenant=fldr[:p]
-                fldr=fldr[p+1:]
-            else:
-                tenant=fldr
-                fldr=''
-        rsyncsrcroot = os.path.join(args.folder,tenant,fldr,'')
-        if fldr == '':
-            rsyncdestroot = os.path.join(args.aroot,tenant,args.aprefix,days_back_datestr)
-        else:
-            rsyncdestroot = os.path.join(args.aroot,tenant,args.aprefix,fldr+'-'+days_back_datestr)
-        if args.debug:
-            print('**************************************************************')
-            print("DEBUG: rsyncsrcroot",rsyncsrcroot)
-            print("DEBUG: rsyncdestroot",rsyncdestroot)
-            print('**************************************************************')
-        if pathlist2file(v,file2send,rsyncsrcroot):
-            bwlimitstr = ''
-            if args.bwlimit>0:
-                bwlimitstr = '--bwlimit=%i ' % args.bwlimit
-            rsync_cmd = '/usr/bin/rsync -av --inplace --remove-source-files --exclude=".archive-me" --exclude=".snapshot" %s--files-from="%s" "%s" "%s"' % (bwlimitstr,file2send,rsyncsrcroot,rsyncdestroot)
-            if args.debug:
-                print("DEBUG: would have archived files in '%s' to '%s' !" % (file2send, rsyncdestroot))
-                print("DEBUG: would have run: '%s' !" % rsync_cmd)
-            else:
-                if os.path.exists(args.aroot):
-                    if not os.path.exists(rsyncdestroot):
-                        os.makedirs(rsyncdestroot)
-                    print("executing: '%s' !" % rsync_cmd)
-                    p = subprocess.Popen(rsync_cmd, shell=True).wait()
-                    if p != 0: 
-                        print(' **** Warning: Rsync resturned error code %i' % p)
-                    else:
-                        print('Archiving of folder %s complete !' % fldr)
-                else:
-                    print('folder %s does not exist. Please execute this manually: %s' % (args.aroot,rsync_cmd))
-                    
     log.info('finished checking folder %s for files older than %s days!' % (args.folder, args.days))
 
 def startswithpath(pathlist, pathstr):
@@ -496,8 +430,7 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(prog='fs-cleaner',
         description='clean out old files on a scratch file system ' + \
-        'and notify file owners. Optionally archive files to destination ' + \
-        'archive-root/+archive-prefix1level/+archive-prefix2/project-yyyy-mm-dd')
+        'and notify file owners.')
     parser.add_argument( '--debug', '-g', dest='debug', action='store_true',
         help='show the actual shell commands that are executed (git, chmod, cd)',
         default=False )
@@ -521,23 +454,6 @@ def parse_arguments():
         type=int,
         help='remove files older than x days (default: 1461 days or 4 years) ',
         default=1461 )
-    parser.add_argument( '--archive-root', '-r', dest='aroot',
-        action='store', 
-        help='the root folder of the destination archive file system',
-        default='')
-    parser.add_argument( '--archive-prefix', '-p', dest='aprefix',
-        action='store', 
-        help=' fixed string to be added to prefix the target archive project folder with this sub directory',
-        default='')
-    parser.add_argument( '--archive-tenant', '-t', dest='atenant', action='store_true',
-        help='If true treat the first folder level below --folder as group or tenant. In that case the archive ' \
-                         'target root directory will be aroot+tenant+aprefix ',
-        default=False )
-    parser.add_argument( '--bwlimit', '-b', dest='bwlimit',
-        action='store',
-        type=int,
-        help='maximum bandwidth limit (KB/s) of all parallel rsync sessions combined',
-        default=0)
     parser.add_argument( '--touch-instead-delete', '-i', dest='touchnotdel', action='store_true',
         help='Do not delete a file but touch it so atime will be reset to the current time',
         default=False )
