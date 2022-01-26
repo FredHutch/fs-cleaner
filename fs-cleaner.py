@@ -89,23 +89,23 @@ def main():
                         if os.path.exists(p):
                             sys.stderr.write('file not removed:%s\n' % p)
                     continue
-                        #file is deleted
-                        if stat.st_uid not in filedict:
-                            filedict[stat.st_uid] = list()
-                        if args.touchnotdel:
-                            #touch a file with current time stamp 
-                            setfiletime(p)
-                            args.suppress_emails = True
-                            sys.stderr.write('atime reset:\n%s' % p)
-                        else:
-                            #really delete the file
-                            if not args.debug:
-                                os.remove(p)
-                                if os.path.exists(p):
-                                    sys.stderr.write('file not removed:%s\n' % p)
-                        filedict[stat.st_uid].append(p)
-                        infodict[stat.st_uid][0]+=1
-                        infodict[stat.st_uid][1]+=stat.st_size
+                #file is deleted
+                if stat.st_uid not in filedict:
+                    filedict[stat.st_uid] = list()
+                if args.touchnotdel:
+                    #touch a file with current time stamp 
+                    setfiletime(p)
+                    args.suppress_emails = True
+                    sys.stderr.write('atime reset:\n%s' % p)
+                else:
+                    #really delete the file
+                    if not args.debug:
+                        os.remove(p)
+                        if os.path.exists(p):
+                            sys.stderr.write('file not removed:%s\n' % p)
+                filedict[stat.st_uid].append(p)
+                infodict[stat.st_uid][0]+=1
+                infodict[stat.st_uid][1]+=stat.st_size
 
             if args.warndays > 0:
                 if (recent_time <= days_back_warn_secs and recent_time >= days_back_warn_secs_minus1):
