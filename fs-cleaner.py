@@ -332,16 +332,17 @@ def send_mail(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fro
     if smtphost == '':
         smtphost = get_mx_from_email_or_fqdn(myhost)
     if not smtphost:
-        sys.stderr.write('could not determine smtp mail host !\n')
+        #sys.stderr.write('could not determine smtp mail host !\n') XXX
+        smtphost = 'localhost'
         
     if fromaddr == '':
         fromaddr = os.path.basename(__file__) + '-no-reply@' + \
-           '.'.join(myhost.split(".")[-2:]) #extract domain from host
+           '.'.join(myhost.split(".")[1]) #extract domain from host XXX
     tc=0
     for t in to:
         if '@' not in t:
             # if no email domain given use domain from local host
-            to[tc]=t + '@' + '.'.join(myhost.split(".")[-2:])
+            to[tc]=t + '@' + '.'.join(myhost.split(".")[1]) # XXX
         tc+=1
 
     message = MIMEMultipart()
@@ -391,7 +392,7 @@ def get_mx_from_email_or_fqdn(addr):
     if '@' in addr:
         domain = addr.rsplit('@', 2)[1]
     else:
-        domain = '.'.join(addr.rsplit('.')[-2:])
+        domain = '.'.join(addr.rsplit('.')[1]) # XXX
     p = os.popen('/usr/bin/nslookup -q=mx %s' % domain, 'r')
     mxes = list()
     for line in p:
