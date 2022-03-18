@@ -6,7 +6,7 @@
 # fs-cleaner dirkpetersen / Sept 2014 - Oct 2017 
 #
 
-import sys, os, pwd, argparse, subprocess, re, time, datetime, tempfile
+import sys, os, pwd, argparse, subprocess, re, time, datetime, tempfile, shutil
 try:
     from scandir import walk
 except:
@@ -115,7 +115,7 @@ def main():
                     infodict[stat.st_uid][2]+=1
                     infodict[stat.st_uid][3]+=stat.st_size
 
-    #print(len(warndict),len(filedict))
+    print(len(warndict),len(filedict))
     if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner'):
         os.makedirs(tmpdir+'/'+curruser+'/fs-cleaner')
         
@@ -126,6 +126,9 @@ def main():
         if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+user):
             os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)        
         file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+user+'/'+user+'-warn-delete.txt'
+        if os.path.exists(file2send):
+            flistwarn= '{}/{}-warn-{}days.txt'.format(os.path.normpath(args.folder), user, args.warndays)
+            shutil.copy(file2send, flistwarn)
         if list2file(v,file2send):
             if not args.debug:
                 try:
@@ -175,6 +178,9 @@ def main():
         if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+user):
             os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)
         file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+user+'/'+user+'-deleted-'+days_back_datestr+'.txt'
+        if os.path.exists(file2send):
+            flistdel= '{}/{}-deleted-{}.txt'.format(os.path.normpath(args.folder), user, days_back_datestr)
+            shutil.copy(file2send, flistdel)
         if list2file(v,file2send):
             if not args.debug:
                 try:
