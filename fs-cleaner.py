@@ -127,7 +127,7 @@ def main():
             os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)        
         file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+user+'/'+user+'-warn-delete.txt'
         if os.path.exists(file2send):
-            flistwarn= '{}/{}-warn-{}days.txt'.format(os.path.normpath(args.folder), user, args.warndays)
+            flistwarn = f'{os.path.normpath(args.folder)}/{user}-warn-{args.warndays}days.txt'
             shutil.copy(file2send, flistwarn)
         if list2file(v,file2send):
             if not args.debug:
@@ -179,7 +179,7 @@ def main():
             os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)
         file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+user+'/'+user+'-deleted-'+days_back_datestr+'.txt'
         if os.path.exists(file2send):
-            flistdel= '{}/{}-deleted-{}.txt'.format(os.path.normpath(args.folder), user, days_back_datestr)
+            flistdel = f'{os.path.normpath(args.folder)}/{user}-deleted-{days_back_datestr}.txt'
             shutil.copy(file2send, flistdel)
         if list2file(v,file2send):
             if not args.debug:
