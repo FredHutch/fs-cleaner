@@ -128,7 +128,7 @@ def main():
         if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+user):
             os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)
 
-        warnlog_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-warn.txt'
+        warnlog_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-warn-{args.warndays}days.txt'
         warnlog_user = f'{os.path.normpath(args.folder)}/.{user}-warn-{args.warndays}days.txt'
 
         if list2file(v,warnlog_temp):
@@ -145,7 +145,7 @@ def main():
                 try:
                     if not args.suppress_emails:
                         send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
-                            "Please see the list of files located at {warnlog_user}!\n\n" \
+                            "Please see the list of files located at %s\n\n" \
                             "The files listed here\n" \
                             "will be deleted in %s days if they\n" \
                             "not have been touched for %s days:\n" \
@@ -154,7 +154,7 @@ def main():
                             "by using the command 'touch -a filename'\n" \
                             "on each file. This will reset the access \n" \
                             "time of the file to the current date.\n" \
-                            "\n" % (args.warndays, args.days, infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824)), # TB: 838860 , GB: 1073741824
+                            "\n" % (warnlog_user, args.warndays, args.days, infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824)), # TB: 838860 , GB: 1073741824
                             [file2send,])
                         print ('\nSent file delete warning to user %s' % user)
                         log.info('Sent delete warning for %s files (%s GB) to %s with filelist %s' % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824), user, warnlog_user))
@@ -174,7 +174,7 @@ def main():
                     fn=10
                 print("\nDEBUG: ##### WARN ##########################################################")
                 print("DEBUG: Will delete %s files (%s GB total) owned by '%s'" % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/float(1073741824)), user))
-                print("DEBUG: would send notification with the path to the file '%s' to user '%s' !" % (warnlog_user, user))
+                print("DEBUG: Would have sent notification with path to file '%s' to user '%s'" % (warnlog_user, user))
                 print('DEBUG: List of files to delete (maximum 10 listed):')
                 for i in range(fn):
                     print(v[i])
@@ -185,25 +185,36 @@ def main():
 
     # ******************* process deletions with notification ********************************
     for k, v in filedict.items():
+        
         user=uid2user(k)
+
         if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+user):
             os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)
-        file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+user+'/'+user+'-deleted-'+days_back_datestr+'.txt'
-        if os.path.exists(file2send):
-            flistdel = f'{os.path.normpath(args.folder)}/{user}-deleted-{days_back_datestr}.txt'
-            shutil.copy(file2send, flistdel)
-        if list2file(v,file2send):
+
+        deletelog_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-deleted-{days_back_datestr}.txt'
+        deletelog_user = f'{os.path.normpath(args.folder)}/{user}-deleted-{days_back_datestr}.txt'
+
+        if list2file(v,deletelog_temp):
+            try:
+                shutil.copy(deletelog_temp, deletelog_user)
+            except:
+                    errmsg = f'Error copying file {deletelog_temp} to {deletelog_user}'
+                    sys.stderr.write(errmsg)
+                    log.error(errmsg)
+                    continue
+
+            # No email is sent in debug mode
             if not args.debug:
                 try:
                     if not args.suppress_emails:
                         send_mail([user,], "NOTE: Deleted files in %s that were not accessed for %s days" % (args.folder, args.days),
-                            "Please see attached list of files!\n\n" \
-                            "The files listed in the attached text file\n" \
+                            "Please see the list of files located at %s\n\n" \
+                            "The files listed here\n" \
                             "were deleted because they were not accessed\n" \
                             "in the last %s days." \
-                            "\n" % args.days, [file2send,])
+                            "\n" % (deletelog_user, args.days))
                         print ('\nSent file delete notification to user %s' % user)
-                        log.info('Sent delete note to %s with filelist %s' % (user, file2send))
+                        log.info('Sent delete note to %s with filelist %s' % (user, deletelog_user))
                 except:
                     e=sys.exc_info()[0]
                     sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
@@ -219,13 +230,13 @@ def main():
                 if fn>10:
                     fn=10
                 print("\nDEBUG: ##### DELETE ##########################################################")
-                print("DEBUG: would have deleted %s files (%s GB total) owned by '%s'" % (infodict[k][0], "{0:.3f}".format(infodict[k][1]/float(1073741824)), user))
-                print("DEBUG: would have sent file '%s' to user '%s' !" % (file2send, user))
+                print("DEBUG: Would have deleted %s files (%s GB total) owned by '%s'" % (infodict[k][0], "{0:.3f}".format(infodict[k][1]/float(1073741824)), user))
+                print("DEBUG: Would have sent notification with path to file '%s' to user '%s'" % (deletelog_user, user))
                 print('DEBUG: List of files that would have been deleted (maximum 10 listed):')
                 for i in range(fn):
                     print(v[i])
         else:
-            print("Could not save file '%s'" % file2send)
+            print("Could not save file '%s'" % deletelog_temp)
 
     log.info('finished checking folder %s for files older than %s days!' % (args.folder, args.days))
 
