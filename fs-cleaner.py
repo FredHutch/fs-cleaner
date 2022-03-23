@@ -115,28 +115,39 @@ def main():
                     infodict[stat.st_uid][2]+=1
                     infodict[stat.st_uid][3]+=stat.st_size
 
-    print(len(warndict),len(filedict))
+    #print(len(warndict),len(filedict))
     if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner'):
         os.makedirs(tmpdir+'/'+curruser+'/fs-cleaner')
         
 
     # ********************** process notifications for warnings ********************************************
     for k, v in warndict.items():
+
         user=uid2user(k)
+
         if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+user):
-            os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)        
-        file2send=tmpdir+'/'+curruser+'/fs-cleaner/'+user+'/'+user+'-warn-delete.txt'
-        if os.path.exists(file2send):
-            flistwarn = f'{os.path.normpath(args.folder)}/{user}-warn-{args.warndays}days.txt'
-            shutil.copy(file2send, flistwarn)
-        if list2file(v,file2send):
+            os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)
+
+        warnlog_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-warn.txt'
+        warnlog_user = f'{os.path.normpath(args.folder)}/.{user}-warn-{args.warndays}days.txt'
+
+        if list2file(v,warnlog_temp):
+            try:
+                shutil.copy(warnlog_temp, warnlog_user)
+            except:
+                    errmsg = f'Error copying file {warnlog_temp} to {warnlog_user}'
+                    sys.stderr.write(errmsg)
+                    log.error(errmsg)
+                    continue
+
+            # No email is sent in debug mode
             if not args.debug:
                 try:
                     if not args.suppress_emails:
                         send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
-                            "Please see attached list of files!\n\n" \
-                            "The files listed in the attached text file\n" \
-                            "will be deleted in %s days when they will\n" \
+                            "Please see the list of files located at {warnlog_user}!\n\n" \
+                            "The files listed here\n" \
+                            "will be deleted in %s days if they\n" \
                             "not have been touched for %s days:\n" \
                             "\n# of files: %s, total space: %s GB\n" \
                             "You can prevent deletion of these files\n" \
@@ -146,7 +157,7 @@ def main():
                             "\n" % (args.warndays, args.days, infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824)), # TB: 838860 , GB: 1073741824
                             [file2send,])
                         print ('\nSent file delete warning to user %s' % user)
-                        log.info('Sent delete warning for %s files (%s GB) to %s with filelist %s' % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824), user, file2send))                    
+                        log.info('Sent delete warning for %s files (%s GB) to %s with filelist %s' % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824), user, warnlog_user))
                 except:
                     e=sys.exc_info()[0]
                     sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
@@ -163,13 +174,13 @@ def main():
                     fn=10
                 print("\nDEBUG: ##### WARN ##########################################################")
                 print("DEBUG: Will delete %s files (%s GB total) owned by '%s'" % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/float(1073741824)), user))
-                print("DEBUG: would send file '%s' to user '%s' !" % (file2send, user))
+                print("DEBUG: would send notification with the path to the file '%s' to user '%s' !" % (warnlog_user, user))
                 print('DEBUG: List of files to delete (maximum 10 listed):')
                 for i in range(fn):
                     print(v[i])
 
         else:
-            print("Could not save file '%s'" % file2send)
+            print("Could not save file '%s'" % warnlog_temp)
         
 
     # ******************* process deletions with notification ********************************
