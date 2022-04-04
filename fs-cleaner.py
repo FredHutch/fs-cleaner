@@ -140,31 +140,34 @@ def main():
                     log.error(errmsg)
                     continue
 
+            numfiles_warn = infodict[k][2]
+            totalsize_warn = "{0:.3f}".format(infodict[k][3]/float(1073741824)) # TB: 838860 , GB: 1073741824
+
             # No email is sent in debug mode
             if not args.debug:
                 try:
                     if not args.suppress_emails:
-                        send_mail([user,], "WARNING: In %s days will delete files in %s!" % (args.warndays, args.folder),
-                            "Please see the list of files located at %s\n\n" \
+                        send_mail([user,], f"WARNING: In {args.warndays} days will delete files in {args.folder}!",
+                            f"Please see the list of files located at {warnlog_user}\n\n" \
                             "The files listed here\n" \
-                            "will be deleted in %s days if they\n" \
-                            "not have been touched for %s days:\n" \
-                            "\n# of files: %s, total space: %s GB\n" \
+                            "will be deleted in {args.warndays} days if they\n" \
+                            "not have been touched for {args.days} days:\n" \
+                            "\n# of files: {numfiles_warn}, total space: {totalsize_warn} GB\n" \
                             "You can prevent deletion of these files\n" \
                             "by using the command 'touch -a filename'\n" \
                             "on each file. This will reset the access \n" \
                             "time of the file to the current date.\n" \
-                            "\n" % (warnlog_user, args.warndays, args.days, infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824)), # TB: 838860 , GB: 1073741824
+                            "\n", 
                             [file2send,])
-                        print ('\nSent file delete warning to user %s' % user)
-                        log.info('Sent delete warning for %s files (%s GB) to %s with filelist %s' % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/1073741824), user, warnlog_user))
+                        print (f'\nSent file delete warning to user {user}')
+                        log.info(f'Sent delete warning for {numfiles_warn} files ({totalsize_warn} GB) to {user} with filelist {warnlog_user}'
                 except:
                     e=sys.exc_info()[0]
-                    sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
-                    log.error("Error in send_mail while sending to '%s': %s" % (user, e))
+                    sys.stderr.write(f"Error in send_mail while sending to '{user}': {e}\n")
+                    log.error(f"Error in send_mail while sending to '{user}': {e}")
                     if args.email:
                         send_mail([args.email,], "Error - fs-cleaner",
-                            "Please debug email notification to user '%s', Error: %s\n" % (user, e))
+                            f"Please debug email notification to user '{user}', Error: {e}\n")
                     else:
                         sys.stderr.write('no option --email-notify given, cannot send error status via email\n')
                         
@@ -173,14 +176,14 @@ def main():
                 if fn>10:
                     fn=10
                 print("\nDEBUG: ##### WARN ##########################################################")
-                print("DEBUG: Will delete %s files (%s GB total) owned by '%s'" % (infodict[k][2], "{0:.3f}".format(infodict[k][3]/float(1073741824)), user))
-                print("DEBUG: Would have sent notification with path to file '%s' to user '%s'" % (warnlog_user, user))
+                print(f"DEBUG: Will delete {numfiles_warn} files ({totalsize_warn} GB total) owned by '{user}'")
+                print(f"DEBUG: Would have sent notification with path to file '{warnlog_user}' to user '{user}'")
                 print('DEBUG: List of files to delete (maximum 10 listed):')
                 for i in range(fn):
                     print(v[i])
 
         else:
-            print("Could not save file '%s'" % warnlog_temp)
+            print(f"Could not save file '{warnlog_temp}'")
         
 
     # ******************* process deletions with notification ********************************
