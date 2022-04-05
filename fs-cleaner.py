@@ -191,8 +191,8 @@ def main():
         
         user=uid2user(k)
 
-        if not os.path.exists(tmpdir+'/'+curruser+'/fs-cleaner/'+user):
-            os.mkdir(tmpdir+'/'+curruser+'/fs-cleaner/'+user)
+        if not os.path.exists(f'{tmpdir}/{curruser}/fs-cleaner/{user}'):
+            os.mkdir(f'{tmpdir}/{curruser}/fs-cleaner/{user}')
 
         deletelog_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-deleted-{days_back_datestr}.txt'
         deletelog_user = f'{os.path.normpath(args.folder)}/{user}-deleted-{days_back_datestr}.txt'
@@ -206,25 +206,27 @@ def main():
                     log.error(errmsg)
                     continue
 
+            numfiles_del = infodict[k][0]
+            totalsize_del = "{0:.3f}".format(infodict[k][1]/float(1073741824)) # TB: 838860 , GB: 1073741824
+
             # No email is sent in debug mode
             if not args.debug:
                 try:
                     if not args.suppress_emails:
-                        send_mail([user,], "NOTE: Deleted files in %s that were not accessed for %s days" % (args.folder, args.days),
-                            "Please see the list of files located at %s\n\n" \
+                        send_mail([user,], f"NOTE: Deleted files in {args.folder} that were not accessed for {args.days} days",
+                            "Please see the list of files located at {deletelog_user}\n\n" \
                             "The files listed here\n" \
                             "were deleted because they were not accessed\n" \
-                            "in the last %s days." \
-                            "\n" % (deletelog_user, args.days))
-                        print ('\nSent file delete notification to user %s' % user)
-                        log.info('Sent delete note to %s with filelist %s' % (user, deletelog_user))
+                            "in the last {args.days} days.\n")
+                        print (f'\nSent file delete notification to user {user}')
+                        log.info(f'Sent delete note to {user} with filelist {deletelog_user}')
                 except:
                     e=sys.exc_info()[0]
-                    sys.stderr.write("Error in send_mail while sending to '%s': %s\n" % (user, e))
-                    log.error("Error in send_mail while sending to '%s': %s" % (user, e))
+                    sys.stderr.write(f"Error in send_mail while sending to '{user}': {e}\n")
+                    log.error(f"Error in send_mail while sending to '{user}': {e}")
                     if args.email:
                         send_mail([args.email,], "Error - fs-cleaner",
-                            "Please debug email notification to user '%s', Error: %s\n" % (user, e))
+                            f"Please debug email notification to user '{user}', Error: {e}\n")
                     else:
                         sys.stderr.write('no option --email-notify given, cannot send error status via email\n')
 
@@ -233,15 +235,15 @@ def main():
                 if fn>10:
                     fn=10
                 print("\nDEBUG: ##### DELETE ##########################################################")
-                print("DEBUG: Would have deleted %s files (%s GB total) owned by '%s'" % (infodict[k][0], "{0:.3f}".format(infodict[k][1]/float(1073741824)), user))
-                print("DEBUG: Would have sent notification with path to file '%s' to user '%s'" % (deletelog_user, user))
+                print(f"DEBUG: Would have deleted {numfiles_del} files ({totalsize_del} GB total) owned by '{user}'")
+                print(f"DEBUG: Would have sent notification with path to file '{deletelog_user}' to user '{user}'")
                 print('DEBUG: List of files that would have been deleted (maximum 10 listed):')
                 for i in range(fn):
                     print(v[i])
         else:
-            print("Could not save file '%s'" % deletelog_temp)
+            print(f"Could not save file '{deletelog_temp}'")
 
-    log.info('finished checking folder %s for files older than %s days!' % (args.folder, args.days))
+    log.info('finished checking folder {args.folder} for files older than {args.days} days!')
 
 def startswithpath(pathlist, pathstr):
     """ checks if at least one of the paths in a list of paths starts with a string """
