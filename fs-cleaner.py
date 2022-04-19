@@ -121,14 +121,17 @@ def main():
     send_emails = True if not args.suppress_emails else False
     warn_only = True if args.warndays else False
     warn_days = args.warndays if warn_only else 0
+    dict_to_process = warndict if warn_only else filedict
 
     # ********************** process file warn and deletion with notifications ********************************************
-    process_files(curruser, folder, args.days, days_back_datestr, files, infodict, send_emails, args.email, warn_only, warn_days, args.debug)
-    log.info('finished checking folder {args.folder} for files older than {args.days} days!')
+    process_files(curruser, args.folder, args.days, days_back_datestr, dict_to_process, infodict, send_emails, args.email, warn_only, warn_days, args.debug)
+    log.info(f'finished checking folder {args.folder} for files older than {args.days} days!')
 
-def process_files(curruser, folder, days, days_back_date, files, info_user, send_emails = True, email_to = '', warn = True, warndays = 0, debug = False):
+def process_files(curruser, folder, days, days_back_date, files_dict, info_user, send_emails = True, email_to = '', warn = True, warndays = 0, debug = False):
     tmpdir = tempfile.gettempdir()
-    for uid, userfiles in files.items():
+    index_numfiles = 2 if warn else 0
+    index_totalsize = 3 if warn else 1
+    for uid, userfiles in files_dict.items():
         user = uid2user(uid)
         if not os.path.exists(f'{tmpdir}/{curruser}/fs-cleaner/{user}'):
             os.mkdir(f'{tmpdir}/{curruser}/fs-cleaner/{user}')
@@ -148,57 +151,55 @@ def process_files(curruser, folder, days, days_back_date, files, info_user, send
             log.error(errmsg)
             continue
 
-    index_numfiles = 2 if warn else 0
-    index_totalsize = 3 if warn else 1
-    numfiles_user = info_user[uid][index_numfiles]
-    totalsize_user = "{0:.3f}".format(info_user[uid][index_totalsize]/float(1073741824)) # TB: 838860 , GB: 1073741824
+        numfiles_user = info_user[uid][index_numfiles]
+        totalsize_user = "{0:.3f}".format(info_user[uid][index_totalsize]/float(1073741824)) # TB: 838860 , GB: 1073741824
 
-    # No email is sent in debug mode
-    if not debug:
-        try:
-            if send_emails:
-                mail_subject = ''
-                summary = ''
-                if warn:
-                    mail_subject = f"WARNING: In {warndays} days will delete files in {folder}!"
-                    mail_body = f"Please see the list of files located at {warnlog_user}\n\n" \
-                        "The files listed here\n" \
-                        "will be deleted in {warndays} days if they\n" \
-                        "not have been touched for {days} days:\n" \
-                        "\n# of files: {numfiles_user}, total space: {totalsize_user} GB\n" \
-                        "You can prevent deletion of these files\n" \
-                        "by using the command 'touch -a filename'\n" \
-                        "on each file. This will reset the access \n" \
-                        "time of the file to the current date.\n"
-                    summary = f'Sent delete warning for {numfiles_warn} files ({totalsize_warn} GB) to {user} with filelist {warnlog_user}'
+        # No email is sent in debug mode
+        if not debug:
+            try:
+                if send_emails:
+                    mail_subject = ''
+                    summary = ''
+                    if warn:
+                        mail_subject = f"WARNING: In {warndays} days will delete files in {folder}!"
+                        mail_body = f"Please see the list of files located at {warnlog_user}\n\n" \
+                            "The files listed here\n" \
+                            "will be deleted in {warndays} days if they\n" \
+                            "not have been touched for {days} days:\n" \
+                            "\n# of files: {numfiles_user}, total space: {totalsize_user} GB\n" \
+                            "You can prevent deletion of these files\n" \
+                            "by using the command 'touch -a filename'\n" \
+                            "on each file. This will reset the access \n" \
+                            "time of the file to the current date.\n"
+                        summary = f'Sent delete warning for {numfiles_warn} files ({totalsize_warn} GB) to {user} with filelist {warnlog_user}'
+                    else:
+                        mail_subject = f"NOTE: Deleted files in {folder} that were not accessed for {days} days"
+                        mail_body = f"Please see the list of files located at {filelist_user}\n\n" \
+                            "The files listed here\n" \
+                            "were deleted because they were not accessed\n" \
+                            "in the last {days} days.\n"
+                        summary = f'Sent delete notification to {user} with filelist {filelist_user}'
+
+                    send_mail([user], mail_subject, mail_body)
+                    print (f'\n{summary}')
+                    log.info(summary)
+            except:
+                error = sys.exc_info()[0]
+                sys.stderr.write(f"Error in send_mail while sending to '{user}': {error}\n")
+                log.error(f"Error in send_mail while sending to '{user}': {error}")
+                if email_to:
+                    send_mail([email_to], "Error - fs-cleaner",
+                        f"Please debug email notification to user '{user}', Error: {error}\n")
                 else:
-                    mail_subject = f"NOTE: Deleted files in {folder} that were not accessed for {days} days"
-                    mail_body = f"Please see the list of files located at {filelist_user}\n\n" \
-                        "The files listed here\n" \
-                        "were deleted because they were not accessed\n" \
-                        "in the last {days} days.\n"
-                    summary = f'Sent delete notification to {user} with filelist {filelist_user}'
-
-                send_mail([user], mail_subject, mail_body)
-                print (f'\n{summary}')
-                log.info(summary)
-        except:
-            error = sys.exc_info()[0]
-            sys.stderr.write(f"Error in send_mail while sending to '{user}': {error}\n")
-            log.error(f"Error in send_mail while sending to '{user}': {error}")
-            if email_to:
-                send_mail([email_to], "Error - fs-cleaner",
-                    f"Please debug email notification to user '{user}', Error: {error}\n")
-            else:
-                sys.stderr.write('no option --email-notify given, cannot send error status via email\n')
-    else:
-        numfiles = max(len(userfiles), 10)
-        print("\nDEBUG: ##### DELETE ##########################################################")
-        print(f"DEBUG: Would have deleted {numfiles_user} files ({totalsize_user} GB total) owned by '{user}'")
-        print(f"DEBUG: Would have sent notification with path to file '{filelist_user}' to user '{user}'")
-        print('DEBUG: List of files that would have been deleted (maximum 10 listed):')
-        for i in range(numfiles):
-            print(userfiles[i])
+                    sys.stderr.write('no option --email-notify given, cannot send error status via email\n')
+        else:
+            numfiles = min(len(userfiles), 10)
+            print("\nDEBUG: ##### DELETE ##########################################################")
+            print(f"DEBUG: Would have deleted {numfiles_user} files ({totalsize_user} GB total) owned by '{user}'")
+            print(f"DEBUG: Would have sent notification with path to file '{filelist_user}' to user '{user}'")
+            print('DEBUG: List of files that would have been deleted (maximum 10 listed):')
+            for i in range(numfiles):
+                print(userfiles[i])
 
 
 def startswithpath(pathlist, pathstr):
