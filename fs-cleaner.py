@@ -46,6 +46,7 @@ def main():
         #print(root)
         #for folder in folders:
             #print ('...folder:%s' % folder)
+        root = os.path.abspath(root)
 
         if args.delete_folders:
             if not folders and not files and root != os.path.normpath(args.folder):
@@ -128,6 +129,7 @@ def main():
     log.info(f'finished checking folder {args.folder} for files older than {args.days} days!')
 
 def process_files(curruser, folder, days, days_back_date, files_dict, info_user, send_emails = True, email_to = '', warn = True, warndays = 0, debug = False):
+    log = logger('fs-cleaner', debug)
     tmpdir = tempfile.gettempdir()
     index_numfiles = 2 if warn else 0
     index_totalsize = 3 if warn else 1
@@ -136,8 +138,9 @@ def process_files(curruser, folder, days, days_back_date, files_dict, info_user,
         if not os.path.exists(f'{tmpdir}/{curruser}/fs-cleaner/{user}'):
             os.mkdir(f'{tmpdir}/{curruser}/fs-cleaner/{user}')
 
+        folder = os.path.abspath(folder)
         filelist_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-deleted-{days_back_date}.txt'
-        filelist_user = f'{os.path.normpath(folder)}/{user}-deleted-{days_back_date}.txt'
+        filelist_user = f'{folder}/{user}-deleted-{days_back_date}.txt'
 
         if not list2file(userfiles, filelist_temp):
             print(f"Could not save file '{filelist_temp}'")
@@ -162,22 +165,22 @@ def process_files(curruser, folder, days, days_back_date, files_dict, info_user,
                     summary = ''
                     if warn:
                         mail_subject = f"WARNING: In {warndays} days will delete files in {folder}!"
-                        mail_body = f"Please see the list of files located at {warnlog_user}\n\n" \
+                        mail_body = f"Please see the list of files located at {filelist_user}\n\n" \
                             "The files listed here\n" \
-                            "will be deleted in {warndays} days if they\n" \
-                            "not have been touched for {days} days:\n" \
-                            "\n# of files: {numfiles_user}, total space: {totalsize_user} GB\n" \
+                            f"will be deleted in {warndays} days if they\n" \
+                            f"not have been touched for {days} days\n" \
+                            f"\n# of files: {numfiles_user}, total space: {totalsize_user} GB\n" \
                             "You can prevent deletion of these files\n" \
                             "by using the command 'touch -a filename'\n" \
                             "on each file. This will reset the access \n" \
                             "time of the file to the current date.\n"
-                        summary = f'Sent delete warning for {numfiles_warn} files ({totalsize_warn} GB) to {user} with filelist {warnlog_user}'
+                        summary = f'Sent delete warning for {numfiles_user} files ({totalsize_user} GB) to {user} with filelist {filelist_user}'
                     else:
                         mail_subject = f"NOTE: Deleted files in {folder} that were not accessed for {days} days"
                         mail_body = f"Please see the list of files located at {filelist_user}\n\n" \
                             "The files listed here\n" \
                             "were deleted because they were not accessed\n" \
-                            "in the last {days} days.\n"
+                            f"in the last {days} days.\n"
                         summary = f'Sent delete notification to {user} with filelist {filelist_user}'
 
                     send_mail([user], mail_subject, mail_body)
@@ -293,19 +296,13 @@ def walkerr(oserr):
 
 
 def send_mail(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
+    
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.base import MIMEBase
+    from email.mime.text import MIMEText
+    from email.utils import COMMASPACE, formatdate
+    from email import encoders as Encoders
 
-    if sys.version_info[0] == 2:
-        from email.MIMEMultipart import MIMEMultipart
-        from email.MIMEBase import MIMEBase
-        from email.MIMEText import MIMEText
-        from email.Utils import COMMASPACE, formatdate
-        from email import Encoders
-    else:
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.base import MIMEBase
-        from email.mime.text import MIMEText
-        from email.utils import COMMASPACE, formatdate
-        from email import encoders as Encoders
     from string import Template
     import socket
     import smtplib
@@ -318,20 +315,24 @@ def send_mail(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fro
         return False
     
     myhost=socket.getfqdn()
+    mydomain = '.'.join(myhost.rsplit('.')[1:]) # Just strip off first component (hostname)
 
     if smtphost == '':
         smtphost = get_mx_from_email_or_fqdn(myhost)
     if not smtphost:
-        sys.stderr.write('could not determine smtp mail host, using localhost!\n') #XXX
-        smtphost = 'localhost' #XXX
+        sys.stderr.write('could not determine smtp mail host, using localhost!\n')
+        smtphost = 'localhost'
         
     if fromaddr == '':
-        fromaddr = os.path.basename(__file__) + '-no-reply@' + myhost #XXX
+#    fromaddr = os.path.basename(__file__) + '-no-reply@' + \
+#        '.'.join(myhost.split(".")[-2:]) #extract domain from host
+        fromaddr = f'fs_cleaner-no-reply@{mydomain}'
     tc=0
     for t in to:
         if '@' not in t:
             # if no email domain given use domain from local host
-            to[tc]=t + '@' + myhost #XXX
+#            to[tc]=t + '@' + '.'.join(myhost.split(".")[-2:])
+            to[tc] = f'{t}@{mydomain}'
         tc+=1
 
     message = MIMEMultipart()
@@ -381,7 +382,9 @@ def get_mx_from_email_or_fqdn(addr):
     if '@' in addr:
         domain = addr.rsplit('@', 2)[1]
     else:
-        domain = '.'.join(addr.rsplit('.')[1:]) # XXX
+#        domain = '.'.join(addr.rsplit('.')[-2:])
+        domain = '.'.join(addr.rsplit('.')[1:]) # Just strip off first component (hostname)
+#    print(f'Mail domain: {domain}')
     p = os.popen('/usr/bin/nslookup -q=mx %s' % domain, 'r')
     mxes = list()
     for line in p:
