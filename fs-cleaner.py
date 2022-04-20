@@ -139,8 +139,9 @@ def process_files(curruser, folder, days, days_back_date, files_dict, info_user,
             os.mkdir(f'{tmpdir}/{curruser}/fs-cleaner/{user}')
 
         folder = os.path.abspath(folder)
-        filelist_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-deleted-{days_back_date}.txt'
-        filelist_user = f'{folder}/{user}-deleted-{days_back_date}.txt'
+        filelist_type = f'warn-{warndays}days' if warn else 'deleted'
+        filelist_temp = f'{tmpdir}/{curruser}/fs-cleaner/{user}/{user}-{filelist_type}-{days_back_date}.txt'
+        filelist_user = f'{folder}/{user}-{filelist_type}-{days_back_date}.txt'
 
         if not list2file(userfiles, filelist_temp):
             print(f"Could not save file '{filelist_temp}'")
