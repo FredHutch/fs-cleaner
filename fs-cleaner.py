@@ -38,6 +38,7 @@ def main():
     infodict = {}  # contains list per uid: numfiles, sizefiles, numwarnfiles, sizewarnfiles
 
     #print ('\nScanning folder %s for files older than %s days...' % (args.folder, args.days))
+    args.folder = os.path.abspath(args.folder)
     if args.folder == '/':
         print('root folder not allowed !')
         return False
@@ -46,7 +47,6 @@ def main():
         #print(root)
         #for folder in folders:
             #print ('...folder:%s' % folder)
-        root = os.path.abspath(root)
 
         if args.delete_folders:
             if not folders and not files and root != os.path.normpath(args.folder):
