@@ -198,10 +198,10 @@ def process_files(curruser, folder, days, days_back_date, files_dict, info_user,
                     sys.stderr.write('no option --email-notify given, cannot send error status via email\n')
         else:
             numfiles = min(len(userfiles), 10)
-            print("\nDEBUG: ##### DELETE ##########################################################")
-            print(f"DEBUG: Would have deleted {numfiles_user} files ({totalsize_user} GB total) owned by '{user}'")
+            print(f"\nDEBUG: ##### {'WARN' if warn else'DELETE'} ##########################################################")
+            print(f"DEBUG: Would have {f'sent warning for deletion in {warndays} days of' if warn else 'deleted'} {numfiles_user} files ({totalsize_user} GB total) owned by '{user}'")
             print(f"DEBUG: Would have sent notification with path to file '{filelist_user}' to user '{user}'")
-            print('DEBUG: List of files that would have been deleted (maximum 10 listed):')
+            print(f"DEBUG: List of files that would be deleted {f'in {warndays} days' if warn else ''} (maximum 10 listed):")
             for i in range(numfiles):
                 print(userfiles[i])
 
