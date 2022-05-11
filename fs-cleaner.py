@@ -1,9 +1,11 @@
 #! /usr/bin/env python3
 
-# Script to clean out a file system such as scratch based on certain criteria
+# fs-cleaner: Script to clean out a file system such as scratch based on certain criteria
 # (e.g. not accessed or modified in x days)
 #
-# fs-cleaner dirkpetersen / Sept 2014 - Oct 2017 
+# dirkpetersen / Sept 2014 - Oct 2017
+#
+# Hazel Schubert <hschuber@fredhutch.org> / May 2022
 #
 
 import sys, os, pwd, argparse, subprocess, re, time, datetime, tempfile, shutil
@@ -133,6 +135,7 @@ def process_files(curruser, folder, days, days_back_date, files_dict, info_user,
     tmpdir = tempfile.gettempdir()
     index_numfiles = 2 if warn else 0
     index_totalsize = 3 if warn else 1
+
     for uid, userfiles in files_dict.items():
         user = uid2user(uid)
         if not os.path.exists(f'{tmpdir}/{curruser}/fs-cleaner/{user}'):
@@ -296,7 +299,7 @@ def walkerr(oserr):
     return 0
 
 
-def send_mail(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
+def send_mail(to, subject, text, cc=[], bcc=[], smtphost="", fromaddr=""):
     
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
@@ -346,20 +349,12 @@ def send_mail(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fro
 
     body = Template('This is a notification message from $application, running on \n' + \
             'host $host. Please review the following message:\n\n' + \
-            '$notify_text\n\nIf output is being captured, you may find additional\n' + \
-            'information in your logs.\n'
+            '$notify_text\n'
             )
     host_name = socket.gethostname()
     full_body = body.substitute(host=host_name.upper(), notify_text=text, application=os.path.basename(__file__))
 
     message.attach(MIMEText(full_body))
-
-    for f in attachments:
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(open(f, 'rb').read())
-        Encoders.encode_base64(part)
-        part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
-        message.attach(part)
 
     addresses = []
     for x in to:
