@@ -127,11 +127,11 @@ def main():
     dict_to_process = warndict if warn_only else filedict
 
     # ********************** process file warn and deletion with notifications ********************************************
-    process_files(curruser, args.folder, args.days, days_back_datestr, dict_to_process, infodict, send_emails, args.email, warn_only, warn_days, args.debug)
+    process_files(curruser, args.folder, args.days, days_back_datestr, dict_to_process, infodict, send_emails, args.email, warn_only, warn_days, log, args.debug)
     log.info(f'finished checking folder {args.folder} for files older than {args.days} days!')
 
-def process_files(curruser, folder, days, days_back_date, files_dict, info_user, send_emails = True, email_to = '', warn = True, warndays = 0, debug = False):
-    log = logger('fs-cleaner', debug)
+def process_files(curruser, folder, days, days_back_date, files_dict, info_user, send_emails, email_to, warn, warndays, log, debug):
+
     tmpdir = tempfile.gettempdir()
     index_numfiles = 2 if warn else 0
     index_totalsize = 3 if warn else 1
