@@ -15,10 +15,7 @@ fi
 
 awk \
 -v DAYS="$1" \
-'BEGIN {
-    FS=","
-    MIN_AGE=(DAYS*24*3600)
-}
+'BEGIN { FS="," ; MIN_AGE=(DAYS*24*3600) }
 { 
     ATIME=$13
     MTIME=$14
