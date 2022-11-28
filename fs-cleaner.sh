@@ -21,8 +21,10 @@ awk \
     RECENT_TIME=ATIME
     if (MTIME > RECENT_TIME) RECENT_TIME=MTIME
     if (CTIME > RECENT_TIME) RECENT_TIME=CTIME
-    CUR_AGE=(systime() - RECENT_TIME);
-    if (CUR_AGE > MIN_AGE) print(strftime("%m/%d/%Y %H:%M:%S", RECENT_TIME), $4);
+    CUR_AGE=(systime() - RECENT_TIME)
+    if (CUR_AGE > MIN_AGE) {
+        print(strftime("%m/%d/%Y %H:%M:%S", RECENT_TIME), $4)
+    }
 }' "$2" | sort -k "1,2" >> "$OUTFILE"
 
 # Send Email (no list of files sent in production due to size limits)
